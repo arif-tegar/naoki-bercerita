@@ -17,6 +17,9 @@ export default function PromoPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [fetchError, setFetchError] = useState('');
+
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://naokibercerita.up.railway.app';
 
   // State Form Input
   const [code, setCode] = useState('');
@@ -45,7 +48,7 @@ export default function PromoPage() {
   const fetchPromos = async () => {
     const token = getCleanToken();
     try {
-      const response = await fetch('https://naokibercerita.up.railway.app/promo', {
+      const response = await fetch(`${baseUrl}/promo`, {
         method: 'GET',
         headers: {
           'accept': '*/*',
@@ -56,9 +59,13 @@ export default function PromoPage() {
       if (response.ok) {
         const data = await response.json();
         setPromos(Array.isArray(data) ? data : []);
+        setFetchError('');
+      } else {
+        setFetchError('Gagal memuat data promo.');
       }
     } catch (err) {
       console.error('Gagal mengambil data promo:', err);
+      setFetchError('❌ Gagal terhubung ke server. Periksa koneksi Anda.');
     }
   };
 
@@ -87,7 +94,7 @@ export default function PromoPage() {
     };
 
     try {
-      const response = await fetch('https://naokibercerita.up.railway.app/promo', {
+      const response = await fetch(`${baseUrl}/promo`, {
         method: 'POST',
         headers: {
           'accept': '*/*',
@@ -128,7 +135,7 @@ export default function PromoPage() {
     const token = getCleanToken();
 
     try {
-      const response = await fetch(`https://naokibercerita.up.railway.app/promo/${id}/deactivate`, {
+      const response = await fetch(`${baseUrl}/promo/${id}/deactivate`, {
         method: 'PUT',
         headers: {
           'accept': '*/*',
@@ -161,6 +168,12 @@ export default function PromoPage() {
         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm h-fit">
           <h2 className="text-base font-bold text-gray-900 mb-4">Buat Promo Baru</h2>
           
+          {fetchError && (
+            <div className="mb-4 p-3 bg-red-50 text-red-600 text-xs font-semibold rounded-xl border border-red-100">
+              ⚠️ {fetchError}
+            </div>
+          )}
+
           {errorMsg && (
             <div className="mb-4 p-3 bg-red-50 text-red-600 text-xs font-semibold rounded-xl border border-red-100">
               ⚠️ {errorMsg}

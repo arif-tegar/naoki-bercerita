@@ -45,6 +45,8 @@ export default function ReportPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://naokibercerita.up.railway.app';
+
   // Ambil token bersih dari localStorage
   const getCleanToken = () => {
     if (typeof window !== 'undefined') {
@@ -62,7 +64,7 @@ export default function ReportPage() {
 
     try {
       const response = await fetch(
-        `https://naokibercerita.up.railway.app/transaction/report/sales?startDate=${startDate}&endDate=${endDate}`,
+        `${baseUrl}/transaction/report/sales?startDate=${startDate}&endDate=${endDate}`,
         {
           method: 'GET',
           headers: {

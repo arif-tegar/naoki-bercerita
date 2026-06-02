@@ -12,6 +12,7 @@ export default function KategoriPage() {
   const [newCategory, setNewCategory] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [fetchError, setFetchError] = useState('');
 
   // Sinyal detektor untuk fitur EDIT
   const [isEditing, setIsEditing] = useState(false);
@@ -50,9 +51,13 @@ export default function KategoriPage() {
       const data = await response.json();
       if (response.ok) {
         setCategories(data.data || data);
+        setFetchError('');
+      } else {
+        setFetchError('Gagal memuat data kategori.');
       }
     } catch (error) {
       console.error('Error saat fetch kategori:', error);
+      setFetchError('❌ Gagal terhubung ke server. Periksa koneksi Anda.');
     }
   };
 
@@ -180,6 +185,11 @@ export default function KategoriPage() {
         <p className="text-sm text-gray-500">Khusus Akun Admin untuk mengatur kategori makanan dan minuman.</p>
       </div>
       
+      {fetchError && (
+        <div className="p-4 mb-4 rounded-xl text-sm font-medium bg-red-50 text-red-800">
+          {fetchError}
+        </div>
+      )}
       {message && (
         <div className={`p-4 mb-4 rounded-xl text-sm font-medium ${
           message.includes('✅') ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'

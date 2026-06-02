@@ -29,6 +29,7 @@ export default function MenuPage() {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [fetchError, setFetchError] = useState('');
 
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState<number | string | null>(null);
@@ -63,8 +64,11 @@ export default function MenuPage() {
       if (resMenu.ok) {
         setMenus(dataMenu.data || dataMenu);
       }
+
+      setFetchError('');
     } catch (error) {
       console.error('Gagal mengambil data:', error);
+      setFetchError('❌ Gagal terhubung ke server. Periksa koneksi Anda.');
     }
   };
 
@@ -214,6 +218,11 @@ export default function MenuPage() {
       </div>
 
       {/* NOTIFIKASI */}
+      {fetchError && (
+        <div className="p-4 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-sm bg-red-50 text-red-800 border border-red-100">
+          {fetchError}
+        </div>
+      )}
       {message && (
         <div className={`p-4 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-sm ${
           message.includes('✅') ? 'bg-green-50 text-green-800 border border-green-100' : 'bg-red-50 text-red-800 border border-red-100'

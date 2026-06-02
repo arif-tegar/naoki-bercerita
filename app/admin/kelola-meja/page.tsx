@@ -13,6 +13,7 @@ export default function KelolaMejaPage() {
   const [newTableNumber, setNewTableNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [fetchError, setFetchError] = useState('');
 
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://naokibercerita.up.railway.app';
 
@@ -39,11 +40,13 @@ export default function KelolaMejaPage() {
       const data = await response.json();
       if (response.ok) {
         setTables(data.data || data);
+        setFetchError('');
       } else {
-        console.error('Gagal mengambil data meja:', data.message);
+        setFetchError('Gagal memuat data meja.');
       }
     } catch (error) {
       console.error('Error saat fetch meja:', error);
+      setFetchError('❌ Gagal terhubung ke server. Periksa koneksi Anda.');
     }
   };
 
@@ -141,6 +144,11 @@ export default function KelolaMejaPage() {
         </div>
 
         {/* Message Alert */}
+        {fetchError && (
+          <div className="max-w-3xl mx-auto p-4 mb-6 rounded-xl text-sm font-medium text-center shadow-sm bg-red-50 text-red-800 border border-red-200">
+            {fetchError}
+          </div>
+        )}
         {message && (
           <div className={`max-w-3xl mx-auto p-4 mb-6 rounded-xl text-sm font-medium text-center shadow-sm ${
             message.includes('✅') ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'

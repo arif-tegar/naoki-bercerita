@@ -1,12 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function LoginPage() {
-  const router = useRouter();
-  
   // State hanya berisi username dan password sesuai Request Body
   const [form, setForm] = useState({
     username: '',
@@ -21,42 +18,48 @@ export default function LoginPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
- const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  
-  try {
-    const response = await fetch('https://naokibercerita.up.railway.app/auth/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ username: form.username, password: form.password }),
-    });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage('');
 
-    const data = await response.json();
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://naokibercerita.up.railway.app';
 
-    // 1. JIKA BACKEND MENOLAK (401 / 400 / dll)
-    if (!response.ok) {
-      alert(`❌ Login Gagal: ${data.message || 'Username atau Password salah!'}`);
-      return; // Stop kodingan di sini, jangan lanjut simpan token!
+    try {
+      const response = await fetch(`${baseUrl}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username: form.username, password: form.password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setMessage(`❌ Login Gagal: ${data.message || 'Username atau Password salah!'}`);
+        setIsSuccess(false);
+        return;
+      }
+
+      if (data.access_token) {
+        localStorage.setItem('token', data.access_token);
+        localStorage.setItem('role', data.user?.role || 'KASIR');
+        setIsSuccess(true);
+        setMessage('🎉 Login Berhasil! Mengalihkan...');
+        setTimeout(() => {
+          window.location.href = '/admin/kategori';
+        }, 1000);
+      }
+
+    } catch (error) {
+      console.error(error);
+      setMessage('❌ Terjadi kesalahan koneksi ke server. Periksa koneksi internet Anda.');
+      setIsSuccess(false);
+    } finally {
+      setLoading(false);
     }
-
-    // 2. JIKA LOGIN 100% SUKSES
-    if (data.access_token) {
-      localStorage.setItem('token', data.access_token);
-      localStorage.setItem('role', data.user?.role || 'KASIR');
-      
-      alert('🎉 Login Berhasil! Token resmi disimpan.');
-      
-      // Arahkan langsung ke halaman kategori setelah sukses
-      window.location.href = '/admin/kategori';
-    }
-
-  } catch (error) {
-    console.error(error);
-    alert('❌ Terjadi kesalahan koneksi ke server.');
-  }
-};
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">

@@ -38,6 +38,8 @@ export default function HistoryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
 
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://naokibercerita.up.railway.app';
+
   // Ambil token bersih
   const getCleanToken = () => {
     if (typeof window !== 'undefined') {
@@ -54,7 +56,7 @@ export default function HistoryPage() {
     const token = getCleanToken();
 
     try {
-      const response = await fetch('https://naokibercerita.up.railway.app/transaction/history', {
+      const response = await fetch(`${baseUrl}/transaction/history`, {
         method: 'GET',
         headers: {
           'accept': '*/*',
@@ -95,7 +97,7 @@ export default function HistoryPage() {
 
     const token = getCleanToken();
     try {
-      const response = await fetch(`https://naokibercerita.up.railway.app/transaction/${id}/pay`, {
+      const response = await fetch(`${baseUrl}/transaction/${id}/pay`, {
         method: 'PUT',
         headers: {
           'accept': '*/*',
@@ -129,7 +131,7 @@ export default function HistoryPage() {
 
     const token = getCleanToken();
     try {
-      const response = await fetch(`https://naokibercerita.up.railway.app/transaction/${id}/cancel`, {
+      const response = await fetch(`${baseUrl}/transaction/${id}/cancel`, {
         method: 'PUT',
         headers: {
           'accept': '*/*',

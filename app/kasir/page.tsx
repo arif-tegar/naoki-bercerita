@@ -30,6 +30,7 @@ export default function KasirPage() {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [fetchError, setFetchError] = useState('');
 
   // State Khusus Fitur Voucher Promo
   const [promoCode, setPromoCode] = useState('');
@@ -69,8 +70,10 @@ export default function KasirPage() {
 
       if (resMenu.ok) setMenus(dataMenu.data || dataMenu);
       if (resTable.ok) setTables(dataTable.data || dataTable);
+      setFetchError('');
     } catch (error) {
       console.error('Gagal mengambil data:', error);
+      setFetchError('❌ Gagal terhubung ke server. Periksa koneksi Anda.');
     }
   };
 
@@ -279,6 +282,11 @@ export default function KasirPage() {
           <h2 className="text-lg sm:text-xl font-bold text-gray-900">Rincian Pesanan</h2>
         </div>
 
+        {fetchError && (
+          <div className="m-4 p-3 rounded-xl text-xs sm:text-sm font-semibold text-center shadow-sm bg-red-50 text-red-800 border border-red-100">
+            {fetchError}
+          </div>
+        )}
         {message && (
           <div className={`m-4 p-3 rounded-xl text-xs sm:text-sm font-semibold text-center shadow-sm ${
             message.includes('✅') ? 'bg-green-50 text-green-800 border border-green-100' : 'bg-red-50 text-red-800 border border-red-100'
