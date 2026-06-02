@@ -37,7 +37,7 @@ export default function RegisterPage() {
     setMessage('');
     setIsSuccess(false);
 
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://naokibercerita.up.railway.app';
 
     try {
       const response = await fetch(`${baseUrl}/auth/register`, {
