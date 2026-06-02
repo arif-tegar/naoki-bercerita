@@ -149,7 +149,6 @@ export default function HistoryPage() {
     }
   };
 
-  // Filter pencarian berdasarkan nama pelanggan atau nomor meja
   const filteredTransactions = transactions.filter((tx) => {
     const nameMatch = tx.customerName?.toLowerCase().includes(searchTerm.toLowerCase());
     const tableMatch = tx.tableId?.toString().includes(searchTerm);
@@ -157,11 +156,12 @@ export default function HistoryPage() {
   });
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 p-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="max-w-7xl mx-auto space-y-6 p-4 sm:p-6 lg:p-8">
+      {/* HEADER SECTION: Judul & Input Cari Adaptif */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-xs">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Riwayat Transaksi 📋</h1>
-          <p className="text-sm text-gray-500 mt-1">Rekam jejak nota pembelian, item menu terpesan, dan pelunasan kasir.</p>
+          <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">Riwayat Transaksi 📋</h1>
+          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Rekam jejak nota pembelian, item menu terpesan, dan pelunasan kasir.</p>
         </div>
         
         <div className="w-full sm:w-72">
@@ -170,167 +170,238 @@ export default function HistoryPage() {
             placeholder="Cari nama pelanggan / meja..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-200 bg-white rounded-xl text-sm focus:outline-orange-500 shadow-sm"
+            className="w-full px-4 py-2.5 border border-gray-200 bg-gray-50/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white shadow-xs transition-all"
           />
         </div>
       </div>
 
       {errorMsg && (
-        <div className="p-4 bg-red-50 text-red-600 text-sm font-semibold rounded-2xl border border-red-100">
+        <div className="p-4 bg-red-50 text-red-600 text-xs sm:text-sm font-semibold rounded-xl border border-red-100">
           ⚠️ {errorMsg}
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm border-collapse">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50/70 text-gray-400 font-bold text-xs uppercase">
-                <th className="py-4 px-4">Waktu / Nota</th>
-                <th className="py-4 px-4">Pelanggan</th>
-                <th className="py-4 px-4">Tipe / Meja</th>
-                <th className="py-4 px-4">Menu Terpesan</th>
-                <th className="py-4 px-4">Total Bayar</th>
-                <th className="py-4 px-4 text-center">Status / Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={6} className="py-12 text-center text-gray-400 text-sm">
-                    <span className="inline-block animate-pulse">Memuat data transaksi...</span>
-                  </td>
-                </tr>
-              ) : filteredTransactions.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-12 text-center text-gray-400 text-sm">
-                    Tidak ada riwayat transaksi ditemukan.
-                  </td>
-                </tr>
-              ) : (
-                filteredTransactions.map((tx) => {
-                  // 1. Hitung harga kotor total barang terlebih dahulu
-                  const subtotalKotor = tx.transactionItems ? tx.transactionItems.reduce((sum, item) => {
-                    return sum + (item.quantity * item.price);
-                  }, 0) : 0;
+      {/* --- KONDISI LOADING --- */}
+      {isLoading ? (
+        <div className="py-16 text-center text-gray-400 bg-white border border-gray-100 rounded-2xl">
+          <div className="inline-block animate-bounce text-lg mb-2">🔄</div>
+          <p className="text-xs sm:text-sm font-medium animate-pulse">Memuat data riwayat transaksi...</p>
+        </div>
+      ) : filteredTransactions.length === 0 ? (
+        /* --- KONDISI KOSONG --- */
+        <div className="py-16 text-center text-gray-400 bg-white border border-gray-100 rounded-2xl">
+          <div className="text-2xl mb-2">📭</div>
+          <p className="text-xs sm:text-sm font-medium">Tidak ada riwayat transaksi ditemukan.</p>
+        </div>
+      ) : (
+        <div>
+          {/* LAYOUT 1: TAMPILAN CARD (Khusus HP & Tablet - Tersembunyi di Desktop `lg:hidden`) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
+            {filteredTransactions.map((tx) => {
+              const subtotalKotor = tx.transactionItems ? tx.transactionItems.reduce((sum, item) => sum + (item.quantity * item.price), 0) : 0;
+              let discountAmount = tx.promo ? (tx.promo.isPercent ? (subtotalKotor * tx.promo.discount) / 100 : tx.promo.discount) : 0;
+              const totalBersih = Math.max(0, subtotalKotor - discountAmount);
+              const currentStatus = tx.status?.toUpperCase();
 
-                  // 2. Kalkulasi nominal potongan diskon berdasarkan tipe voucher
-                  let discountAmount = 0;
-                  if (tx.promo) {
-                    discountAmount = tx.promo.isPercent
-                      ? (subtotalKotor * tx.promo.discount) / 100
-                      : tx.promo.discount;
-                  }
+              return (
+                <div key={tx.id} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm flex flex-col justify-between gap-4">
+                  {/* Atas Card: Invoice ID & Waktu */}
+                  <div className="flex justify-between items-start border-b border-gray-50 pb-3">
+                    <div>
+                      <span className="font-mono text-xs font-bold text-gray-400">#{tx.id}</span>
+                      <h3 className="font-extrabold text-gray-900 text-base mt-0.5">{tx.customerName}</h3>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] bg-gray-100 text-gray-600 font-bold px-2 py-0.5 rounded-md inline-block">
+                        {tx.orderType}
+                      </span>
+                      <p className="text-[11px] font-medium text-gray-400 mt-1">
+                        {new Date(tx.createdAt).toLocaleDateString('id-ID')}
+                      </p>
+                    </div>
+                  </div>
 
-                  // 3. Kurangi subtotal dengan potongan (Gunakan Math.max agar tidak bernilai minus)
-                  const totalBersih = Math.max(0, subtotalKotor - discountAmount);
-                  const currentStatus = tx.status?.toUpperCase();
-
-                  return (
-                    <tr key={tx.id} className="hover:bg-gray-50/40 transition-colors">
-                      {/* Waktu & Invoice */}
-                      <td className="py-4 px-4">
-                        <div className="font-mono text-xs text-gray-400">#{tx.id}</div>
-                        <div className="text-xs font-semibold text-gray-600 mt-0.5">
-                          {new Date(tx.createdAt).toLocaleDateString('id-ID')} {new Date(tx.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                  {/* Tengah Card: Rincian Meja & Menu Item */}
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between text-gray-500 font-semibold">
+                      <span>Lokasi/Meja:</span>
+                      <span className="text-gray-800">{tx.tableId ? `Meja ${tx.tableId}` : 'Tanpa Meja'}</span>
+                    </div>
+                    
+                    <div className="bg-gray-50/70 p-3 rounded-xl space-y-1 max-h-28 overflow-y-auto">
+                      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Item Pesanan:</p>
+                      {tx.transactionItems && tx.transactionItems.map((item, idx) => (
+                        <div key={idx} className="text-gray-700 flex justify-between gap-2">
+                          <span className="truncate">• <span className="font-bold text-gray-900">{item.quantity}x</span> {item.menu?.name || 'Menu Terhapus'}</span>
+                          <span className="text-gray-400 shrink-0">@Rp{item.price.toLocaleString('id-ID')}</span>
                         </div>
-                      </td>
+                      ))}
+                    </div>
+                  </div>
 
-                      {/* Nama Pelanggan */}
-                      <td className="py-4 px-4 font-bold text-gray-800">
-                        {tx.customerName}
-                      </td>
+                  {/* Bawah Card: Harga Final & Badge Status / Tombol Aksi */}
+                  <div className="pt-3 border-t border-gray-50 flex justify-between items-end">
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase">Total Bayar</p>
+                      {discountAmount > 0 ? (
+                        <div>
+                          <span className="text-xs text-gray-400 line-through mr-1.5">Rp {subtotalKotor.toLocaleString('id-ID')}</span>
+                          <span className="text-base font-black text-gray-900">Rp {totalBersih.toLocaleString('id-ID')}</span>
+                          <div className="text-[9px] bg-orange-50 text-orange-600 font-bold px-1.5 py-0.5 rounded mt-0.5 w-fit">
+                            🎟️ {tx.promo.code}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-base font-black text-gray-900">Rp {subtotalKotor.toLocaleString('id-ID')}</span>
+                      )}
+                    </div>
 
-                      {/* Tipe & Meja */}
-                      <td className="py-4 px-4">
-                        <span className="text-xs bg-gray-100 text-gray-600 font-bold px-2 py-0.5 rounded-md">
-                          {tx.orderType}
+                    <div className="text-right">
+                      {tx.isPaid || currentStatus === 'PAID' || currentStatus === 'SERVED' ? (
+                        <span className="inline-block px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 font-bold text-xs rounded-xl">
+                          LUNAS 🟢
                         </span>
-                        <div className="text-xs text-gray-500 font-semibold mt-1">
-                          {tx.tableId ? `Meja ${tx.tableId}` : 'Tanpa Meja'}
+                      ) : currentStatus === 'CANCELLED' || currentStatus === 'BATAL' ? (
+                        <span className="inline-block px-3 py-1 bg-red-50 text-red-700 border border-red-100 font-bold text-xs rounded-xl">
+                          BATAL 🔴
+                        </span>
+                      ) : (
+                        <div className="flex flex-col sm:flex-row gap-1.5 items-end sm:items-center">
+                          <span className="inline-block px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-100 font-bold text-[10px] rounded-lg">
+                            PENDING 🟡
+                          </span>
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => handlePayment(tx.id, totalBersih)}
+                              className="px-2.5 py-1.5 bg-orange-500 text-white font-bold text-xs rounded-lg shadow-xs active:bg-orange-600"
+                            >
+                              Bayar 💵
+                            </button>
+                            <button
+                              onClick={() => handleCancel(tx.id)}
+                              className="px-2.5 py-1.5 bg-red-500 text-white font-bold text-xs rounded-lg shadow-xs active:bg-red-600"
+                            >
+                              Batal ❌
+                            </button>
+                          </div>
                         </div>
-                      </td>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
-                      {/* Menu Terpesan */}
-                      <td className="py-4 px-4 max-w-xs">
-                        <div className="space-y-0.5 text-xs text-gray-600">
-                          {tx.transactionItems && tx.transactionItems.map((item, idx) => (
-                            <div key={idx} className="truncate">
-                              • <span className="font-bold text-gray-800">{item.quantity}x</span> {item.menu?.name || 'Menu Terhapus'}
-                            </div>
-                          ))}
-                        </div>
-                      </td>
+          {/* LAYOUT 2: TAMPILAN TABEL ASLI (Hanya muncul di Layar Desktop `hidden lg:block`) */}
+          <div className="hidden lg:block bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm border-collapse">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/70 text-gray-400 font-bold text-xs uppercase tracking-wider">
+                    <th className="py-4 px-5">Waktu / Nota</th>
+                    <th className="py-4 px-5">Pelanggan</th>
+                    <th className="py-4 px-5">Tipe / Meja</th>
+                    <th className="py-4 px-5">Menu Terpesan</th>
+                    <th className="py-4 px-5">Total Bayar</th>
+                    <th className="py-4 px-5 text-center">Status / Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {filteredTransactions.map((tx) => {
+                    const subtotalKotor = tx.transactionItems ? tx.transactionItems.reduce((sum, item) => sum + (item.quantity * item.price), 0) : 0;
+                    let discountAmount = tx.promo ? (tx.promo.isPercent ? (subtotalKotor * tx.promo.discount) / 100 : tx.promo.discount) : 0;
+                    const totalBersih = Math.max(0, subtotalKotor - discountAmount);
+                    const currentStatus = tx.status?.toUpperCase();
 
-                      {/* 🔥 TOTAL BAYAR (SINKRON DENGAN DISKON) */}
-                      <td className="py-4 px-4">
-                        <div className="flex flex-col">
-                          {discountAmount > 0 ? (
-                            <>
-                              {/* Tampilkan harga coret kotor */}
-                              <span className="text-xs text-gray-400 line-through">
-                                Rp {subtotalKotor.toLocaleString('id-ID')}
-                              </span>
-                              {/* Tampilkan nominal bersih baru */}
-                              <div className="font-extrabold text-gray-900">
-                                Rp {totalBersih.toLocaleString('id-ID')}
+                    return (
+                      <tr key={tx.id} className="hover:bg-gray-50/30 transition-colors">
+                        <td className="py-4 px-5">
+                          <div className="font-mono text-xs text-gray-400">#{tx.id}</div>
+                          <div className="text-xs font-semibold text-gray-600 mt-0.5">
+                            {new Date(tx.createdAt).toLocaleDateString('id-ID')} {new Date(tx.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </td>
+
+                        <td className="py-4 px-5 font-bold text-gray-800">
+                          {tx.customerName}
+                        </td>
+
+                        <td className="py-4 px-5">
+                          <span className="text-xs bg-gray-100 text-gray-600 font-bold px-2 py-0.5 rounded-md">
+                            {tx.orderType}
+                          </span>
+                          <div className="text-xs text-gray-500 font-semibold mt-1">
+                            {tx.tableId ? `Meja ${tx.tableId}` : 'Tanpa Meja'}
+                          </div>
+                        </td>
+
+                        <td className="py-4 px-5 max-w-xs">
+                          <div className="space-y-0.5 text-xs text-gray-600 max-h-16 overflow-y-auto">
+                            {tx.transactionItems && tx.transactionItems.map((item, idx) => (
+                              <div key={idx} className="truncate">
+                                • <span className="font-bold text-gray-800">{item.quantity}x</span> {item.menu?.name || 'Menu Terhapus'}
                               </div>
-                              {/* Informasi Detail Potongan */}
-                              <span className="inline-block w-fit text-[9px] bg-orange-100 text-orange-600 font-bold px-1.5 py-0.5 rounded-md mt-1 font-mono uppercase">
-                                🎟️ {tx.promo.code} (-Rp {discountAmount.toLocaleString('id-ID')})
-                              </span>
-                            </>
+                            ))}
+                          </div>
+                        </td>
+
+                        <td className="py-4 px-5">
+                          <div className="flex flex-col">
+                            {discountAmount > 0 ? (
+                              <>
+                                <span className="text-xs text-gray-400 line-through">Rp {subtotalKotor.toLocaleString('id-ID')}</span>
+                                <div className="font-extrabold text-gray-900">Rp {totalBersih.toLocaleString('id-ID')}</div>
+                                <span className="inline-block w-fit text-[9px] bg-orange-100 text-orange-600 font-bold px-1.5 py-0.5 rounded-md mt-1 font-mono uppercase">
+                                  🎟️ {tx.promo.code} (-Rp {discountAmount.toLocaleString('id-ID')})
+                                </span>
+                              </>
+                            ) : (
+                              <div className="font-extrabold text-gray-900">Rp {subtotalKotor.toLocaleString('id-ID')}</div>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="py-4 px-5 text-center">
+                          {tx.isPaid || currentStatus === 'PAID' || currentStatus === 'SERVED' ? (
+                            <span className="inline-block px-2.5 py-1 bg-emerald-100 text-emerald-700 font-bold text-xs rounded-xl">
+                              LUNAS 🟢
+                            </span>
+                          ) : currentStatus === 'CANCELLED' || currentStatus === 'BATAL' ? (
+                            <span className="inline-block px-2.5 py-1 bg-red-100 text-red-700 font-bold text-xs rounded-xl">
+                              BATAL 🔴
+                            </span>
                           ) : (
-                            /* Jika tidak ada promo, muncul harga normal */
-                            <div className="font-extrabold text-gray-900">
-                              Rp {subtotalKotor.toLocaleString('id-ID')}
+                            <div className="flex flex-col items-center gap-1.5">
+                              <span className="inline-block px-2.5 py-1 bg-amber-100 text-amber-700 font-bold text-xs rounded-xl">
+                                PENDING 🟡
+                              </span>
+                              <div className="flex gap-1.5">
+                                <button
+                                  onClick={() => handlePayment(tx.id, totalBersih)}
+                                  className="px-2.5 py-1 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-[11px] rounded-lg shadow-xs transition-colors"
+                                >
+                                  Bayar 💵
+                                </button>
+                                <button
+                                  onClick={() => handleCancel(tx.id)}
+                                  className="px-2.5 py-1 bg-red-500 hover:bg-red-600 text-white font-extrabold text-[11px] rounded-lg shadow-xs transition-colors"
+                                >
+                                  Batal ❌
+                                </button>
+                              </div>
                             </div>
                           )}
-                        </div>
-                      </td>
-
-                      {/* Status / Aksi Pembayaran */}
-                      <td className="py-4 px-4 text-center">
-                        {tx.isPaid === true || currentStatus === 'PAID' || currentStatus === 'SERVED' ? (
-                          <span className="inline-block px-2.5 py-1 bg-emerald-100 text-emerald-700 font-bold text-xs rounded-xl">
-                            LUNAS 🟢
-                          </span>
-                        ) : currentStatus === 'CANCELLED' || currentStatus === 'BATAL' ? (
-                          <span className="inline-block px-2.5 py-1 bg-red-100 text-red-700 font-bold text-xs rounded-xl">
-                            BATAL 🔴
-                          </span>
-                        ) : (
-                          <div className="flex flex-col items-center gap-1.5">
-                            <span className="inline-block px-2.5 py-1 bg-amber-100 text-amber-700 font-bold text-xs rounded-xl mb-1">
-                              PENDING 🟡
-                            </span>
-                            
-                            <div className="flex gap-1.5">
-                              <button
-                                onClick={() => handlePayment(tx.id, totalBersih)} // 👈 Menggunakan totalBersih yang sudah terpotong kupon
-                                className="px-2.5 py-1 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-[11px] rounded-lg shadow-xs transition-colors"
-                              >
-                                Bayar 💵
-                              </button>
-                              
-                              <button
-                                onClick={() => handleCancel(tx.id)}
-                                className="px-2.5 py-1 bg-red-500 hover:bg-red-600 text-white font-extrabold text-[11px] rounded-lg shadow-xs transition-colors"
-                              >
-                                Batal ❌
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

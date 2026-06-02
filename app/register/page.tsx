@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link'; // 🎯 Impor Link untuk navigasi cepat antar halaman
 
 // 1. Sesuaikan interface dengan Schema Swagger Backend
 interface RegisterForm {
@@ -170,6 +171,19 @@ export default function RegisterPage() {
               'Daftar Sekarang'
             )}
           </button>
+
+          {/* 🎯 KAMPUNG PERBAIKAN: Tautan ke Halaman Login */}
+          <div className="text-center pt-2">
+            <p className="text-sm text-gray-600">
+              Sudah mempunyai akun?{' '}
+              <Link 
+                href="/login" 
+                className="font-bold text-orange-500 hover:text-orange-600 transition-colors hover:underline"
+              >
+                Masuk di sini
+              </Link>
+            </p>
+          </div>
         </form>
       </div>
     </div>
