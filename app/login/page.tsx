@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [message, setMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -34,7 +35,13 @@ export default function LoginPage() {
         body: JSON.stringify({ username: form.username, password: form.password }),
       });
 
-      const data = await response.json();
+      let data: any;
+      try {
+        data = await response.json();
+      } catch {
+        const text = await response.text();
+        throw new Error(`Server mengembalikan respons tidak valid: ${text.slice(0, 200)}`);
+      }
 
       if (!response.ok) {
         setMessage(`❌ Login Gagal: ${data.message || 'Username atau Password salah!'}`);
@@ -53,8 +60,11 @@ export default function LoginPage() {
       }
 
     } catch (error) {
-      console.error(error);
-      setMessage('❌ Terjadi kesalahan koneksi ke server. Periksa koneksi internet Anda.');
+      console.error('Login error:', error);
+      const msg = error instanceof TypeError
+        ? '❌ Tidak dapat terhubung ke server. Pastikan server nyala dan koneksi Anda stabil.'
+        : `❌ ${error instanceof Error ? error.message : 'Terjadi kesalahan tak terduga.'}`;
+      setMessage(msg);
       setIsSuccess(false);
     } finally {
       setLoading(false);
