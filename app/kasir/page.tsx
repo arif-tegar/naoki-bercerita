@@ -235,17 +235,17 @@ export default function KasirPage() {
   };
 
   return (
-    // 📱 Mengubah susunan dasar: flex-col pada HP, beralih ke flex-row pada layar komputer (lg:flex-row)
+    // 📱 Menggunakan tata letak mengalir: Atas-bawah di HP, samping-menyamping (flex-row) mulai dari layar komputer (lg:flex-row)
     <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex flex-col lg:flex-row gap-6">
 
-      {/* SEBELAH KIRI: Daftar Menu (Lebar penuh di HP, flex-1 di layar besar) */}
-      <div className="flex-1 order-2 lg:order-1">
+      {/* 🍔 SEBELAH KIRI: Daftar Menu (Akan selalu tampil paling atas di HP agar tidak tertutup rincian belanja) */}
+      <div className="flex-1">
         <div className="mb-6">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Kasir Pemesanan 🛒</h1>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">Klik menu untuk menambahkannya ke pesanan.</p>
         </div>
 
-        {/* Grid Katalog Menu Adaptif: 2 kolom di HP, 3 di Tablet, 4 di Desktop PC */}
+        {/* Grid Katalog Menu Adaptif */}
         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
           {menus.map((menu) => (
             <div
@@ -273,8 +273,8 @@ export default function KasirPage() {
         </div>
       </div>
 
-      {/* SEBELAH KANAN: Keranjang & Checkout (Lebar penuh di HP, dikunci lebar 380px-400px di Desktop) */}
-      <div className="w-full lg:w-96 order-1 lg:order-2 flex flex-col bg-white rounded-2xl lg:rounded-3xl border border-gray-100 shadow-lg lg:shadow-xl overflow-hidden h-fit lg:sticky lg:top-6">
+      {/* 📋 SEBELAH KANAN: Keranjang & Checkout (Berada di bawah produk pada HP, menempel kokoh (sticky) di kanan pada Desktop PC) */}
+      <div className="w-full lg:w-96 flex flex-col bg-white rounded-2xl lg:rounded-3xl border border-gray-100 shadow-lg lg:shadow-xl overflow-hidden h-fit lg:sticky lg:top-6">
         <div className="p-4 sm:p-6 bg-gray-50/70 border-b border-gray-100">
           <h2 className="text-lg sm:text-xl font-bold text-gray-900">Rincian Pesanan</h2>
         </div>
@@ -288,7 +288,7 @@ export default function KasirPage() {
         )}
 
         <form onSubmit={handleCheckout} className="p-4 sm:p-6 flex flex-col gap-4 sm:gap-5">
-          {/* Input Nama & Meja Berdampingan di Tablet (sm:grid-cols-2) tapi Atas-Bawah di HP */}
+          {/* Form Informasi Pelanggan */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
             <div>
               <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Nama Pelanggan</label>
@@ -333,7 +333,7 @@ export default function KasirPage() {
             </div>
           </div>
 
-          {/* Section Kupon Promo */}
+          {/* Bagian Kupon Promo */}
           <div className="bg-slate-50 p-3 sm:p-4 rounded-xl border border-gray-100">
             <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Kupon Promo</label>
             <div className="flex gap-2">
@@ -375,7 +375,7 @@ export default function KasirPage() {
 
           <hr className="border-dashed border-gray-200" />
 
-          {/* List Item Keranjang (Scroll Tinggi Disesuaikan di Monitor Besar) */}
+          {/* List Item Keranjang */}
           <div className="flex-1 overflow-y-auto max-h-48 sm:max-h-60 lg:max-h-64 pr-1 space-y-3">
             {cart.length === 0 ? (
               <p className="text-center text-xs sm:text-sm text-gray-400 py-6">Belum ada menu yang dipilih.</p>
