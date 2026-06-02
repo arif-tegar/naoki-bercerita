@@ -31,9 +31,16 @@ export default function KasirPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
+  // State Khusus Fitur Voucher Promo
+  const [promoCode, setPromoCode] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<{ id: number; code: string; discount: number; isPercent: boolean } | null>(null);
+  const [promoError, setPromoError] = useState('');
+  const [promoSuccess, setPromoSuccess] = useState('');
+  const [loadingPromo, setLoadingPromo] = useState(false);
+
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://naokibercerita.up.railway.app';
 
-  // Ambil token
+  // Ambil token bersih
   const getCleanToken = () => {
     if (typeof window !== 'undefined') {
       const rawToken = localStorage.getItem('token');
@@ -43,7 +50,7 @@ export default function KasirPage() {
     return '';
   };
 
-  // Mengambil Menu & Meja (Hanya Meja Kosong yang akan ditampilkan di dropdown nanti)
+  // Mengambil Menu & Meja
   const fetchData = async () => {
     try {
       const token = getCleanToken();
@@ -105,9 +112,69 @@ export default function KasirPage() {
     setCart((prev) => prev.filter((item) => item.id !== id));
   };
 
+  // --- LOGIKA KALKULASI HARGA & POTONGAN VOUCHER ---
   const totalPrice = cart.reduce((total, item) => total + (item.price * item.qty), 0);
 
-  // --- LOGIKA CHECKOUT KE BACK END ---
+  const discountAmount = appliedPromo
+    ? appliedPromo.isPercent
+      ? (totalPrice * appliedPromo.discount) / 100
+      : appliedPromo.discount
+    : 0;
+
+  const grandTotal = Math.max(0, totalPrice - discountAmount);
+
+  // --- LOGIKA PENGECEKAN KODE VOUCHER KE BACKEND ---
+const handleCheckPromo = async () => {
+    if (!promoCode.trim()) return;
+
+    setPromoError('');
+    setPromoSuccess('');
+
+    const token = getCleanToken();
+
+    try {
+      const response = await fetch(`${baseUrl}/promo/check?code=${promoCode.toUpperCase().trim()}`, {
+        method: 'GET',
+        headers: {
+          accept: '*/*',
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Voucher tidak valid atau sudah kedaluwarsa.');
+      }
+
+      // 🎯 KUNCINYA DI SINI: Mengambil properti 'promo' sesuai dengan response body backend-mu
+      const promoData = result.promo;
+
+      // Validasi jika properti promo tidak ditemukan atau kosong
+      if (!promoData) {
+        throw new Error('Voucher tidak ditemukan dalam respon server.');
+      }
+
+      // Validasi status keaktifan voucher promo
+      if (!promoData.isActive) {
+        throw new Error('Voucher ini sudah dinonaktifkan.');
+      }
+
+      // Masukkan data promo yang valid ke dalam state
+      setAppliedPromo(promoData);
+      
+      const labelDiskon = promoData.isPercent 
+        ? `${promoData.discount}%` 
+        : `Rp ${promoData.discount.toLocaleString('id-ID')}`;
+        
+      setPromoSuccess(`Kupon "${promoData.code}" berhasil diterapkan! Potongan: ${labelDiskon}`);
+    } catch (error: any) {
+      setAppliedPromo(null);
+      setPromoError(error.message || 'Gagal memeriksa kode promo.');
+    }
+  };
+
+  // --- LOGIKA CHECKOUT KE BACKEND ---
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cart.length === 0) {
@@ -120,18 +187,19 @@ export default function KasirPage() {
     const token = getCleanToken();
 
     try {
-      // KUNCI UTAMA: Menyusun payload yang 100% patuh pada DTO Backend terbaru
+      // Menyusun payload dengan menyertakan properti promoCode
       const payload = {
-        customerName: customerName.trim() || 'Pelanggan Walk-in', // Re-add & pastikan tidak kosong
+        customerName: customerName.trim() || 'Pelanggan Walk-in',
         tableId: Number(selectedTable),
-        orderType: 'DINE_IN', // <-- PROPERTI BARU YANG WAJIB DIISI!
+        orderType: 'DINE_IN',
+       promoCode: appliedPromo ? appliedPromo.code : null,
         items: cart.map((item) => ({
           menuId: Number(item.id),
-          quantity: Number(item.qty) // Tetap menggunakan 'quantity' sesuai DTO asli temanmu
+          quantity: Number(item.qty)
         }))
       };
 
-      console.log('Mengirim Checkout Sesuai DTO Terbaru:', payload);
+      console.log('Mengirim Checkout Sesuai DTO Terbaru dengan Promo:', payload);
 
       const response = await fetch(`${baseUrl}/transaction/checkout`, {
         method: 'POST',
@@ -145,8 +213,8 @@ export default function KasirPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        const errorDetail = Array.isArray(data.message) 
-          ? data.message.join(', ') 
+        const errorDetail = Array.isArray(data.message)
+          ? data.message.join(', ')
           : data.message;
         
         throw new Error(errorDetail || 'Gagal memproses transaksi.');
@@ -154,11 +222,14 @@ export default function KasirPage() {
 
       setMessage('✅ Pesanan berhasil dibuat! Meja otomatis terkunci.');
 
-      // Reset Form & Keranjang jika sukses
+      // Reset Form, Keranjang, dan Kunci Promo jika sukses
       setCart([]);
       setSelectedTable('');
       setCustomerName('');
-      fetchData(); // Refresh data menu & meja terbaru dari server
+      setPromoCode('');
+      setAppliedPromo(null);
+      setPromoSuccess('');
+      fetchData(); // Refresh data menu & meja terbaru
 
       setTimeout(() => setMessage(''), 4000);
     } catch (error: unknown) {
@@ -167,6 +238,7 @@ export default function KasirPage() {
       setLoading(false);
     }
   };
+
   return (
     <div className="max-w-7xl mx-auto p-4 flex flex-col lg:flex-row gap-6">
 
@@ -236,7 +308,6 @@ export default function KasirPage() {
                 <option value="" disabled>Belum ada meja tersedia</option>
               ) : (
                 tables.map((t) => {
-                  // Menyamakan format teks status menjadi huruf besar agar aman dari typo huruf kecil
                   const currentStatus = String(t.status).toUpperCase();
                   const isOccupied = currentStatus === 'OCCUPIED';
 
@@ -244,7 +315,7 @@ export default function KasirPage() {
                     <option
                       key={t.id}
                       value={t.id}
-                      disabled={isOccupied} // <-- KUNCINYA DI SINI: Jika terisi, otomatis tidak bisa diklik!
+                      disabled={isOccupied}
                       className={isOccupied ? 'text-gray-400 bg-gray-100' : 'text-gray-900'}
                     >
                       Meja {t.number} {isOccupied ? '🔴 (SEDANG TERISI)' : '🟢 (KOSONG)'}
@@ -253,6 +324,47 @@ export default function KasirPage() {
                 })
               )}
             </select>
+          </div>
+
+          {/* SECTION COMPONENT INPUT KUPON PROMO */}
+          <div className="mt-2 bg-slate-50 p-4 rounded-xl border border-gray-200">
+            <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Kupon Promo (Opsional)</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Masukkan kode, cth: NAOKI"
+                value={promoCode}
+                onChange={(e) => setPromoCode(e.target.value.toUpperCase().replace(/\s/g, ''))}
+                disabled={!!appliedPromo} // Kunci input jika kupon sudah berhasil terpasang
+                className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm font-mono focus:outline-orange-500 disabled:bg-gray-100 disabled:text-gray-400"
+              />
+              {appliedPromo ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAppliedPromo(null);
+                    setPromoCode('');
+                    setPromoSuccess('');
+                  }}
+                  className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-600 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleCheckPromo}
+                  disabled={loadingPromo}
+                  className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                >
+                  {loadingPromo ? 'Cek...' : 'Terapkan'}
+                </button>
+              )}
+            </div>
+
+            {/* Pesan Feedback Status Promo */}
+            {promoError && <p className="text-red-500 text-xs font-bold mt-1.5">⚠️ {promoError}</p>}
+            {promoSuccess && <p className="text-emerald-600 text-xs font-bold mt-1.5">✅ {promoSuccess}</p>}
           </div>
 
           <hr className="border-dashed border-gray-200" />
@@ -283,17 +395,29 @@ export default function KasirPage() {
             )}
           </div>
 
-          {/* Total & Tombol Submit */}
-          <div className="pt-4 border-t border-gray-100">
-            <div className="flex justify-between items-end mb-4">
-              <span className="text-sm font-bold text-gray-500">Total Harga</span>
-              <span className="text-2xl font-extrabold text-gray-900">Rp {totalPrice.toLocaleString('id-ID')}</span>
+          {/* Rincian Akumulasi Total Harga Akhir */}
+          <div className="pt-4 border-t border-gray-100 space-y-1.5">
+            <div className="flex justify-between items-center text-sm text-gray-500">
+              <span>Subtotal</span>
+              <span className="font-semibold text-gray-700">Rp {totalPrice.toLocaleString('id-ID')}</span>
+            </div>
+
+            {discountAmount > 0 && (
+              <div className="flex justify-between items-center text-sm text-red-600 font-medium">
+                <span>Potongan Kupon</span>
+                <span>- Rp {discountAmount.toLocaleString('id-ID')}</span>
+              </div>
+            )}
+
+            <div className="flex justify-between items-end pt-2 border-t border-gray-50">
+              <span className="text-sm font-bold text-gray-500">Total Bayar</span>
+              <span className="text-2xl font-extrabold text-gray-900">Rp {grandTotal.toLocaleString('id-ID')}</span>
             </div>
 
             <button
               type="submit"
               disabled={loading || cart.length === 0 || !selectedTable}
-              className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl disabled:bg-gray-300 transition-all shadow-md text-lg"
+              className="w-full mt-2 py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl disabled:bg-gray-300 transition-all shadow-md text-lg cursor-pointer text-center"
             >
               {loading ? 'Memproses...' : 'Buat Pesanan 🚀'}
             </button>

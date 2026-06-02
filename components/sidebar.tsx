@@ -1,104 +1,195 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
-interface SidebarProps {
-  isOpen: boolean;
-  setIsOpen: (open: boolean) => void;
-}
-
-export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
+export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [userRole, setUserRole] = useState('STAFF');
+  const [isCollapsed, setIsCollapsed] = useState(false); // State buka-tutup global
+  const [isMobileOpen, setIsMobileOpen] = useState(false); // State khusus laci HP
 
-  const menuItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: '📊' },
-    { name: 'Kategori Menu', path: '/admin/kategori', icon: '📁' },
-    { name: 'Menu Makanan', path: '/admin/menu', icon: '🍲' },
-    { name: 'Kelola Meja', path: '/admin/kelola-meja', icon: '🪑' },
-    { name: 'Transaksi', path: '/admin/transaksi', icon: '💳' },
-  ];
+  // Ambil state role dan preferensi ukuran dari localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const role = localStorage.getItem('role') || 'ADMIN';
+      setUserRole(role.toUpperCase());
+
+      const savedCollapsed = localStorage.getItem('sidebar_collapsed');
+      if (savedCollapsed === 'true') {
+        setIsCollapsed(true);
+      }
+    }
+  }, []);
+
+  // Fungsi toggle sidebar desktop
+  const toggleSidebar = () => {
+    const nextState = !isCollapsed;
+    setIsCollapsed(nextState);
+    localStorage.setItem('sidebar_collapsed', String(nextState));
+  };
+
+  // Sembunyikan sidebar di halaman auth
+  if (pathname === '/login' || pathname === '/register') {
+    return null;
+  }
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    router.push('/login');
+    if (window.confirm('Apakah kamu yakin ingin keluar?')) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('role');
+      router.push('/login');
+    }
   };
+
+  // Jalur navigasi menu disesuaikan dengan folder yang kamu miliki
+const menuItems = [
+    { 
+      name: 'Kasir Pemesanan', 
+      icon: '🛒', 
+      path: '/kasir', 
+      roles: ['ADMIN', 'KASIR'] 
+    },
+    // 🔥 TAMBAHKAN MENU HISTORY DI SINI:
+    { 
+      name: 'Riwayat Transaksi', 
+      icon: '📋', 
+      path: '/history', 
+      roles: ['ADMIN', 'KASIR'] // Kasir dan admin bisa melihat halaman ini
+    },
+    { 
+      name: 'Kelola Kategori', 
+      icon: '📁', 
+      path: '/admin/kategori', 
+      roles: ['ADMIN'] 
+    },
+    { 
+      name: 'Daftar Menu', 
+      icon: '🍔', 
+      path: '/admin/menu', 
+      roles: ['ADMIN'] 
+    },
+    { 
+      name: 'Denah Meja', 
+      icon: '🪑', 
+      path: '/admin/kelola-meja', 
+      roles: ['ADMIN', 'KASIR'] 
+    },
+    { 
+      name: 'Kelola Promo', 
+      icon: '🎟️', 
+      path: '/admin/promo', 
+      roles: ['ADMIN'] 
+    },
+  ];
 
   return (
     <>
-      {/* Tombol hamburger (muncul saat sidebar tertutup) */}
-      {!isOpen && (
+      {/* 📱 TOMBOL HAMBURGER KHUSUS MOBILE (Hanya muncul di HP/Tablet jika menu tertutup) */}
+      <div className="md:hidden fixed top-4 left-4 z-50">
         <button
-          onClick={() => setIsOpen(true)}
-          className="fixed top-4 left-4 z-40 p-2.5 bg-white border border-gray-200 shadow-md rounded-xl text-gray-700 hover:text-orange-500 hover:bg-orange-50 transition-all focus:outline-none"
-          title="Buka Menu"
+          onClick={() => setIsMobileOpen(!isMobileOpen)}
+          className="p-2.5 bg-white rounded-xl shadow-md text-gray-700 border border-gray-100 focus:outline-none"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-      )}
+      </div>
 
-      {/* Overlay gelap */}
-      {isOpen && (
+      {/* 📋 BACKGROUND OVERLAY UNTUK MOBILE */}
+      {isMobileOpen && (
         <div
-          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 transition-opacity"
-          onClick={() => setIsOpen(false)}
-        />
+          onClick={() => setIsMobileOpen(false)}
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-xs md:hidden"
+        ></div>
       )}
 
-      {/* Panel sidebar */}
+      {/* 💻 UTAMA: SIDEBAR NAVIGATION */}
       <aside
-        className={`fixed left-0 top-0 z-50 h-screen w-64 border-r border-gray-200 bg-white shadow-xl flex flex-col transition-transform duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`bg-white border-r border-gray-200 min-h-screen p-4 flex flex-col justify-between fixed left-0 top-0 z-50 transition-all duration-300 ${
+          // Pengaturan Lebar Desktop (Lebar biasa vs Mode Ringkas/Ikon)
+          isCollapsed ? 'md:w-20' : 'md:w-64'
+        } ${
+          // Pengaturan Geser di HP/Mobile
+          isMobileOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'
         }`}
       >
-        <div className="flex items-center justify-between border-b border-gray-100 py-6 px-4">
-          <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">
-            Kasir<span className="text-orange-500">Naoki</span> 🍔
-          </h1>
-          <button
-            onClick={() => setIsOpen(false)}
-            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-            title="Tutup Menu"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+        <div>
+          {/* BAGIAN ATAS: Logo & Tombol Minimize Desktop */}
+          <div className="flex items-center justify-between mb-8 px-2 h-10 overflow-hidden">
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xl">🍽️</span>
+              {(!isCollapsed || isMobileOpen) && (
+                <span className="font-bold text-gray-900 text-lg tracking-tight animate-fadeIn">
+                  NaokiResto
+                </span>
+              )}
+            </div>
 
-        <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-2">
-          {menuItems.map((item) => {
-            const isActive = pathname === item.path;
-            return (
-              <Link
-                key={item.name}
-                href={item.path}
-                onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
-                  isActive
-                    ? 'bg-orange-500 text-white shadow-md shadow-orange-200'
-                    : 'text-gray-600 hover:bg-orange-50 hover:text-orange-600'
-                }`}
+            {/* Tombol Panah Minimize (Hanya muncul di Layar Laptop/PC ke atas) */}
+            <button
+              onClick={toggleSidebar}
+              className="hidden md:flex p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-700 transition-colors focus:outline-none"
+              title={isCollapsed ? "Buka Sidebar" : "Sembunyikan Sidebar"}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className={`h-5 w-5 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
               >
-                <span className="text-lg">{item.icon}</span>
-                {item.name}
-              </Link>
-            );
-          })}
-        </nav>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+              </svg>
+            </button>
+          </div>
 
-        <div className="border-t border-gray-100 p-4">
-          <button
-            onClick={handleLogout}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-600 transition-all hover:bg-red-100"
-          >
-            <span>🚪</span> Logout
-          </button>
+          {/* NAVIGASI MENU */}
+          <nav className="space-y-1">
+            {menuItems.map((item) => {
+              const isActive = pathname === item.path;
+              if (!item.roles.includes(userRole)) return null;
+
+              return (
+                <Link
+                  key={item.path}
+                  href={item.path}
+                  onClick={() => setIsMobileOpen(false)} // Tutup otomatis di HP jika menu diklik
+                  className={`flex items-center rounded-xl text-sm font-semibold transition-all group ${
+                    isCollapsed && !isMobileOpen ? 'justify-center p-2.5' : 'px-4 py-2.5 gap-3'
+                  } ${
+                    isActive
+                      ? 'bg-orange-500 text-white shadow-sm'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                  title={isCollapsed ? item.name : ''}
+                >
+                  <span className="text-lg shrink-0">{item.icon}</span>
+                  {(!isCollapsed || isMobileOpen) && (
+                    <span className="truncate animate-fadeIn">{item.name}</span>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
+
+        {/* BAGIAN BAWAH: Tombol Keluar */}
+        <button
+          onClick={handleLogout}
+          className={`flex items-center text-sm font-semibold text-red-500 hover:bg-red-50 rounded-xl transition-colors ${
+            isCollapsed && !isMobileOpen ? 'justify-center p-2.5' : 'px-4 py-2.5 justify-between'
+          }`}
+          title="Keluar"
+        >
+          {(!isCollapsed || isMobileOpen) && <span className="animate-fadeIn">Keluar</span>}
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+        </button>
       </aside>
     </>
   );

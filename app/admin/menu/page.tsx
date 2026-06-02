@@ -30,13 +30,11 @@ export default function MenuPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
-  // Penanda Mode EDIT Menu
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState<number | string | null>(null);
 
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://naokibercerita.up.railway.app';
 
-  // Jurus Sapu Jagat Token
   const getCleanToken = () => {
     if (typeof window !== 'undefined') {
       const rawToken = localStorage.getItem('token');
@@ -46,7 +44,6 @@ export default function MenuPage() {
     return '';
   };
 
-  // Mengambil daftar Menu dan Kategori (GET)
   const fetchData = async () => {
     try {
       const token = getCleanToken();
@@ -79,7 +76,6 @@ export default function MenuPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // Trigger saat tombol "Edit" di tabel diklik
   const handleEditClick = (menu: Menu) => {
     setIsEditing(true);
     setEditId(menu.id);
@@ -91,14 +87,12 @@ export default function MenuPage() {
     });
   };
 
-  // Batalkan proses edit
   const handleCancelEdit = () => {
     setIsEditing(false);
     setEditId(null);
     setForm({ name: '', price: '', stock: '', categoryId: '' });
   };
 
-  // Fungsi Utama Form (Bisa POST atau PUT)
   const handleSubmitMenu = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -112,7 +106,6 @@ export default function MenuPage() {
     }
 
     try {
-      // Struktur Request Body sesuai dengan spesifikasi Swagger temanmu
       const payload: Record<string, unknown> = {
         name: form.name,
         price: Number(form.price),
@@ -126,7 +119,6 @@ export default function MenuPage() {
       let response;
 
       if (isEditing && editId) {
-        // === JALUR EDIT DATA (PUT /menu/:id) ===
         response = await fetch(`${baseUrl}/menu/${editId}`, {
           method: 'PUT',
           headers: {
@@ -136,7 +128,6 @@ export default function MenuPage() {
           body: JSON.stringify(payload),
         });
       } else {
-        // === JALUR TAMBAH BARU (POST /menu) ===
         response = await fetch(`${baseUrl}/menu`, {
           method: 'POST',
           headers: {
@@ -161,7 +152,6 @@ export default function MenuPage() {
       if (isEditing && editId) {
         fetchData();
       } else {
-        // Pakai response POST agar stok tidak hilang (backend mungkin return 0 di GET)
         const newMenu = data?.data || data;
         if (newMenu?.id) {
           if (submittedStock !== undefined && (!newMenu.stock || newMenu.stock === 0)) {
@@ -182,7 +172,6 @@ export default function MenuPage() {
     }
   };
 
-  // Fungsi Hapus Data (DELETE)
   const handleDeleteMenu = async (id: number | string) => {
     const isConfirm = window.confirm('Apakah kamu yakin ingin menghapus menu ini?');
     if (!isConfirm) return;
@@ -275,55 +264,57 @@ export default function MenuPage() {
         </form>
       </div>
 
-      {/* Tabel Menu */}
+      {/* Tabel Menu - Responsif: overflow horizontal */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Nama Menu</th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Kategori</th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Harga</th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Sisa Stok</th>
-              <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Aksi</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {menus.length === 0 ? (
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
               <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
-                  Belum ada menu makanan terdaftar.
-                </td>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Nama Menu</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Kategori</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Harga</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Sisa Stok</th>
+                <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Aksi</th>
               </tr>
-            ) : (
-              menus.map((menu, index) => {
-                const matchedCategory = categories.find(
-                  (c) => String(c.id) === String(menu.categoryId || menu.category_id)
-                );
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {menus.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
+                    Belum ada menu makanan terdaftar.
+                  </td>
+                </tr>
+              ) : (
+                menus.map((menu, index) => {
+                  const matchedCategory = categories.find(
+                    (c) => String(c.id) === String(menu.categoryId || menu.category_id)
+                  );
 
-                return (
-                  <tr key={menu.id || index} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">{menu.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-md text-xs font-medium">
-                        {matchedCategory ? matchedCategory.name : 'Umum / Uncategorized'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium">Rp {menu.price.toLocaleString('id-ID')}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className={`px-3 py-1 rounded-full font-full text-xs ${menu.stock > 10 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                        {menu.stock} porsi
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
-                      <button onClick={() => handleEditClick(menu)} className="text-blue-600 hover:text-blue-800 font-bold mr-4 transition-colors">Edit</button>
-                      <button onClick={() => handleDeleteMenu(menu.id)} className="text-red-500 hover:text-red-700 font-bold transition-colors">Hapus</button>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+                  return (
+                    <tr key={menu.id || index} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">{menu.name}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-md text-xs font-medium">
+                          {matchedCategory ? matchedCategory.name : 'Umum / Uncategorized'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium">Rp {menu.price.toLocaleString('id-ID')}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <span className={`px-3 py-1 rounded-full font-full text-xs ${menu.stock > 10 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                          {menu.stock} porsi
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
+                        <button onClick={() => handleEditClick(menu)} className="text-blue-600 hover:text-blue-800 font-bold mr-4 transition-colors">Edit</button>
+                        <button onClick={() => handleDeleteMenu(menu.id)} className="text-red-500 hover:text-red-700 font-bold transition-colors">Hapus</button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
