@@ -1,16 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean;
+  setIsOpen: (open: boolean) => void;
+}
+
+export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  
-  // State untuk mengontrol apakah sidebar sedang terbuka atau tertutup
-  // Default: false (tertutup) agar layarnya lega
-  const [isOpen, setIsOpen] = useState(false);
 
   const menuItems = [
     { name: 'Dashboard', path: '/dashboard', icon: '📊' },
@@ -27,7 +28,7 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* 1. Tombol Hamburger (Hanya muncul saat sidebar tertutup) */}
+      {/* Tombol hamburger (muncul saat sidebar tertutup) */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
@@ -40,27 +41,24 @@ export default function Sidebar() {
         </button>
       )}
 
-      {/* 2. Layar Gelap (Overlay) - Muncul saat sidebar terbuka */}
+      {/* Overlay gelap */}
       {isOpen && (
         <div
           className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 transition-opacity"
-          onClick={() => setIsOpen(false)} // Kalau layar gelap diklik, sidebar otomatis nutup
+          onClick={() => setIsOpen(false)}
         />
       )}
 
-      {/* 3. Panel Sidebar Utama */}
-      <aside 
+      {/* Panel sidebar */}
+      <aside
         className={`fixed left-0 top-0 z-50 h-screen w-64 border-r border-gray-200 bg-white shadow-xl flex flex-col transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* Header / Logo */}
         <div className="flex items-center justify-between border-b border-gray-100 py-6 px-4">
           <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">
             Kasir<span className="text-orange-500">Naoki</span> 🍔
           </h1>
-          
-          {/* Tombol Tutup Sidebar */}
           <button
             onClick={() => setIsOpen(false)}
             className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
@@ -72,16 +70,14 @@ export default function Sidebar() {
           </button>
         </div>
 
-        {/* Navigasi Menu */}
         <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-2">
           {menuItems.map((item) => {
             const isActive = pathname === item.path;
-
             return (
               <Link
                 key={item.name}
                 href={item.path}
-                onClick={() => setIsOpen(false)} // Otomatis nutup sidebar kalau menu diklik
+                onClick={() => setIsOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                   isActive
                     ? 'bg-orange-500 text-white shadow-md shadow-orange-200'
@@ -95,7 +91,6 @@ export default function Sidebar() {
           })}
         </nav>
 
-        {/* Tombol Logout di bagian paling bawah */}
         <div className="border-t border-gray-100 p-4">
           <button
             onClick={handleLogout}
