@@ -25,6 +25,7 @@ export default function KasirPage() {
 
   // State untuk Keranjang & Form Pemesanan
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [orderType, setOrderType] = useState<'DINE_IN' | 'TAKEAWAY'>('DINE_IN');
   const [selectedTable, setSelectedTable] = useState('');
   const [customerName, setCustomerName] = useState('');
 
@@ -40,6 +41,13 @@ export default function KasirPage() {
   const [loadingPromo, setLoadingPromo] = useState(false);
 
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://naokibercerita.up.railway.app';
+
+  // Otomatis reset meja jika beralih ke TAKEAWAY
+  useEffect(() => {
+    if (orderType === 'TAKEAWAY') {
+      setSelectedTable('');
+    }
+  }, [orderType]);
 
   // Ambil token bersih
   const getCleanToken = () => {
@@ -191,8 +199,8 @@ export default function KasirPage() {
     try {
       const payload = {
         customerName: customerName.trim() || 'Pelanggan Walk-in',
-        tableId: Number(selectedTable),
-        orderType: 'DINE_IN',
+        tableId: orderType === 'DINE_IN' ? Number(selectedTable) : null,
+        orderType: orderType,
         promoCode: appliedPromo ? appliedPromo.code : null,
         items: cart.map((item) => ({
           menuId: Number(item.id),
@@ -219,7 +227,11 @@ export default function KasirPage() {
         throw new Error(errorDetail || 'Gagal memproses transaksi.');
       }
 
-      setMessage('✅ Pesanan berhasil dibuat! Meja otomatis terkunci.');
+      setMessage(
+        orderType === 'DINE_IN' 
+          ? '✅ Pesanan berhasil dibuat! Meja otomatis terkunci.' 
+          : '✅ Pesanan Take Away berhasil dibuat!'
+      );
 
       setCart([]);
       setSelectedTable('');
@@ -227,6 +239,7 @@ export default function KasirPage() {
       setPromoCode('');
       setAppliedPromo(null);
       setPromoSuccess('');
+      setOrderType('DINE_IN');
       fetchData();
 
       setTimeout(() => setMessage(''), 4000);
@@ -238,10 +251,9 @@ export default function KasirPage() {
   };
 
   return (
-    // 📱 Menggunakan tata letak mengalir: Atas-bawah di HP, samping-menyamping (flex-row) mulai dari layar komputer (lg:flex-row)
     <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex flex-col lg:flex-row gap-6">
 
-      {/* 🍔 SEBELAH KIRI: Daftar Menu (Akan selalu tampil paling atas di HP agar tidak tertutup rincian belanja) */}
+      {/* 🍔 SEBELAH KIRI: Daftar Menu */}
       <div className="flex-1">
         <div className="mb-6">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Kasir Pemesanan 🛒</h1>
@@ -276,7 +288,7 @@ export default function KasirPage() {
         </div>
       </div>
 
-      {/* 📋 SEBELAH KANAN: Keranjang & Checkout (Berada di bawah produk pada HP, menempel kokoh (sticky) di kanan pada Desktop PC) */}
+      {/* 📋 SEBELAH KANAN: Keranjang & Checkout */}
       <div className="w-full lg:w-96 flex flex-col bg-white rounded-2xl lg:rounded-3xl border border-gray-100 shadow-lg lg:shadow-xl overflow-hidden h-fit lg:sticky lg:top-6">
         <div className="p-4 sm:p-6 bg-gray-50/70 border-b border-gray-100">
           <h2 className="text-lg sm:text-xl font-bold text-gray-900">Rincian Pesanan</h2>
@@ -304,7 +316,7 @@ export default function KasirPage() {
                 type="text"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="Walk-in / Nama..."
+                placeholder="Nama..."
                 className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
               />
             </div>
@@ -314,28 +326,31 @@ export default function KasirPage() {
               <select
                 value={selectedTable}
                 onChange={(e) => setSelectedTable(e.target.value)}
-                required
-                className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none bg-white cursor-pointer transition-all"
+                required={orderType === 'DINE_IN'}
+                disabled={orderType === 'TAKEAWAY'}
+                className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none bg-white cursor-pointer transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
               >
-                <option value="" disabled>-- Pilih Meja --</option>
-                {tables.length === 0 ? (
-                  <option value="" disabled>Belum ada meja tersedia</option>
-                ) : (
-                  tables.map((t) => {
-                    const currentStatus = String(t.status).toUpperCase();
-                    const isOccupied = currentStatus === 'OCCUPIED';
+                <option value="">{orderType === 'TAKEAWAY' ? '-- Tidak Butuh Meja --' : '-- Pilih Meja --'}</option>
+                {orderType === 'DINE_IN' && (
+                  tables.length === 0 ? (
+                    <option value="" disabled>Belum ada meja tersedia</option>
+                  ) : (
+                    tables.map((t) => {
+                      const currentStatus = String(t.status).toUpperCase();
+                      const isOccupied = currentStatus === 'OCCUPIED';
 
-                    return (
-                      <option
-                        key={t.id}
-                        value={t.id}
-                        disabled={isOccupied}
-                        className={isOccupied ? 'text-gray-400 bg-gray-100' : 'text-gray-900'}
-                      >
-                        Meja {t.number} {isOccupied ? '🔴 (TERISI)' : '🟢 (KOSONG)'}
-                      </option>
-                    );
-                  })
+                      return (
+                        <option
+                          key={t.id}
+                          value={t.id}
+                          disabled={isOccupied}
+                          className={isOccupied ? 'text-gray-400 bg-gray-100' : 'text-gray-900'}
+                        >
+                          Meja {t.number} {isOccupied ? '🔴 (TERISI)' : '🟢 (KOSONG)'}
+                        </option>
+                      );
+                    })
+                  )
                 )}
               </select>
             </div>
@@ -379,6 +394,48 @@ export default function KasirPage() {
 
             {promoError && <p className="text-red-500 text-[11px] font-bold mt-1.5">⚠️ {promoError}</p>}
             {promoSuccess && <p className="text-emerald-600 text-[11px] font-bold mt-1.5">✅ {promoSuccess}</p>}
+          </div>
+
+          {/* 🌟 BAGIAN TERBARU: Opsi Jenis Pesanan (Order Type) di bawah Kupon Promo */}
+          <div className="bg-slate-50 p-3 sm:p-4 rounded-xl border border-gray-100">
+            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Jenis Pesanan</label>
+            <div className="grid grid-cols-2 gap-3">
+              {/* Tombol Dine In */}
+              <label className={`flex flex-col items-center justify-center p-2.5 rounded-xl border-2 cursor-pointer transition-all ${
+                orderType === 'DINE_IN'
+                  ? 'bg-orange-50/60 border-orange-500 text-orange-600 shadow-sm'
+                  : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+              }`}>
+                <input
+                  type="radio"
+                  name="orderType"
+                  value="DINE_IN"
+                  checked={orderType === 'DINE_IN'}
+                  onChange={() => setOrderType('DINE_IN')}
+                  className="sr-only"
+                />
+                <span className="text-base mb-0.5">🍽️</span>
+                <span className="text-xs font-bold uppercase tracking-wider">Dine In</span>
+              </label>
+
+              {/* Tombol Take Away */}
+              <label className={`flex flex-col items-center justify-center p-2.5 rounded-xl border-2 cursor-pointer transition-all ${
+                orderType === 'TAKEAWAY'
+                  ? 'bg-orange-50/60 border-orange-500 text-orange-600 shadow-sm'
+                  : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+              }`}>
+                <input
+                  type="radio"
+                  name="orderType"
+                  value="TAKEAWAY"
+                  checked={orderType === 'TAKEAWAY'}
+                  onChange={() => setOrderType('TAKEAWAY')}
+                  className="sr-only"
+                />
+                <span className="text-base mb-0.5">🛍️</span>
+                <span className="text-xs font-bold uppercase tracking-wider">Take Away</span>
+              </label>
+            </div>
           </div>
 
           <hr className="border-dashed border-gray-200" />
@@ -430,7 +487,7 @@ export default function KasirPage() {
 
             <button
               type="submit"
-              disabled={loading || cart.length === 0 || !selectedTable}
+              disabled={loading || cart.length === 0 || (orderType === 'DINE_IN' && !selectedTable)}
               className="w-full mt-2 py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-all shadow-md shadow-orange-100 text-sm sm:text-base cursor-pointer text-center"
             >
               {loading ? 'Memproses...' : 'Buat Pesanan 🚀'}

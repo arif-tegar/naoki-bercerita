@@ -46,11 +46,13 @@ export default function Sidebar() {
   // Menu navigasi utama berdasarkan hak akses gambar sistem Anda
   const menuItems = [
     { name: 'Kasir Pemesanan', icon: '🛒', path: '/kasir', roles: ['ADMIN', 'KASIR'] },
-    { name: 'Riwayat Transaksi', icon: '📋', path: '/history', roles: ['ADMIN', 'KASIR'] },
     { name: 'Kelola Kategori', icon: '📁', path: '/admin/kategori', roles: ['ADMIN'] },
     { name: 'Daftar Menu', icon: '🍔', path: '/admin/menu', roles: ['ADMIN'] },
     { name: 'Denah Meja', icon: '🪑', path: '/admin/kelola-meja', roles: ['ADMIN', 'KASIR'] },
     { name: 'Kelola Promo', icon: '🎟️', path: '/admin/promo', roles: ['ADMIN'] },
+    { name: 'Riwayat Transaksi', icon: '📋', path: '/history', roles: ['ADMIN', 'KASIR'] },
+     { name: 'Report', icon: '📋', path: '/report', roles: ['ADMIN'] },
+
   ];
 
   return (
